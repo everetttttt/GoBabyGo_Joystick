@@ -14,38 +14,46 @@
 // BTS7960 Pin 8 (GND) to Arduino GND
 // BTS7960 Pin 5 (R_IS) and 6 (L_IS) not connected
 */
-const int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
-const int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
-const int yellow_in = 2;
-const int white_in = 3;
-const int blue_in = 4;
+int delay_ms = 100;
 
-void setup() {
+int SENSOR_PIN = A6; // center pin of the potentiometer
+int RPWM_Output = 9; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
+int LPWM_Output = 10; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
+int bluePin = A1;
+
+void setup()
+{
+  Serial.begin(9600);
+
+  pinMode(bluePin, INPUT);
+  pinMode(SENSOR_PIN, INPUT);
   pinMode(RPWM_Output, OUTPUT);
   pinMode(LPWM_Output, OUTPUT);
-  
-  pinMode(yellow_in, INPUT);
-  pinMode(white_in, INPUT);
-  pinMode(blue_in, INPUT);
 }
-
-void loop() {
-  yellow = analogRead(yellow_in);
-  white = analogRead(white_in);
-  blue = analogRead(blue_in);
-  Serial.print("yellow: ");
-  Serial.print(yellow);
-  Serial.print("   white: ");
-  Serial.print(white);
-  Serial.print("   blue: ");
+void loop()
+{
+  int sensorValue = analogRead(SENSOR_PIN);
+  int blue = analogRead(bluePin);
+  Serial.print("Pot: ");
+  Serial.print(sensorValue);
+  Serial.print('\t');
+  Serial.print("Blue: ");
   Serial.println(blue);
-
-  if (millis() % 4096 > 2048) {
+  // sensor value is in the range 0 to 1023
+  // the lower half of it we use for reverse rotation; the upper half for forward rotation
+  if (sensorValue < 512)
+  {
+  // reverse rotation
+    int reversePWM = -(sensorValue - 511) / 2;
     analogWrite(LPWM_Output, 0);
-    analogWrite(RPWM_Output, 255);
+    analogWrite(RPWM_Output, reversePWM);
   }
-  else {
-    analogWrite(LPWM_Output, 255);
+  else
+  {
+    // forward rotation
+    int forwardPWM = (sensorValue - 512) / 2;
+    analogWrite(LPWM_Output, forwardPWM);
     analogWrite(RPWM_Output, 0);
   }
+  delay(delay_ms);
 }
