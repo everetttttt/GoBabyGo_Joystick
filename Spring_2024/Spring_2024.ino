@@ -17,6 +17,7 @@
 //modify those inputs to microsecond outputs
 //set up setJoystick func
 //set up emergency stop func
+//add speed controller testing
 
 
 //PINS
