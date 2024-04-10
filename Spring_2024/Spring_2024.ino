@@ -3,7 +3,7 @@
 //code written by Everett Kernen
 //electronics done by Jackson Truitt and Everett Kernen
 //if you have any questions, try not to; I've spent too much time commenting extensively
-//but if you do still have questions, email me at everettk2020@gmail.com with the subject line reading "GoBabyGo" along with whatever else
+//but if you do still have questions, email me at ekernen2@gmail.com with the subject line reading "GoBabyGo" along with whatever else
 //I'll try to respond in a semi-timely manner
 
 #include <Servo.h>
@@ -13,6 +13,19 @@
 //either plug wires into the pins we've already written or write in the pins you're using
 //a number is equal to its digital counterpart, i.e. digital pin 10 --> 10
 //for analog, use prefix A, i.e. analog pin 5 --> A5
+const int SPEEDCONTROLLERPOSITIVE = 12;
+const int SPEEDCONTROLLERPINin = A0; //TBD
+const int SPEEDCONTROLLERNEGATIVE = 11;
+const int RCTRANSMITTERONEin = 10; //PWM channel
+const int RCTRANSMITTERTWOin = 6; //PWM channel
+const int RCTRANSMITTERTHREEin = 5; //PWM channel
+const int LINEARACTUATORSIGNALout = 3; //PWM channel
+const int JOYSTICKHORIZONTAL = A0;
+const int JOYSTICKVERTICAL = A2;
+
+
+
+
 const int JFWDBWDPIN = A2;  //pin number for forward and backwards input on the joystick
 const int JSIDEWAYSPIN = A4;//pin number for left and right input on the joystick
 const int GAS = 2;         //pin number for the Gas relay input
