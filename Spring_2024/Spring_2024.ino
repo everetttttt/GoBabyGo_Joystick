@@ -1,14 +1,10 @@
 //GoBabyGo Wichita State University
 //Spring 2024
-//code written by Everett Kernen
-//electronics done by Jackson Truitt and Everett Kernen
-//if you have any questions, try not to; I've spent too much time commenting extensively
-//but if you do still have questions, email me at ekernen2@gmail.com with the subject line reading "GoBabyGo" along with whatever else
-//I'll try to respond in a semi-timely manner
+//project done by Everett Kernen, Joel Lewis, and Jacksn Truitt
 
 //It should be noted this code uses a custom PCB to connect wires together. See details for that in the README, if I remember
 
-#include <Servo.h>
+#include <Servo.h> // enables PWM output to the drive and steer motors
 
 //TODO:
 //test (obviously)
@@ -20,7 +16,7 @@
 //add speed controller testing
 
 
-//PINS
+//PINS (ordered clockwise around the arduino nano every)
 const int JOYSTICKSWITCH = 12;
 const int RC_SPEED = 10; //PWM
 const int RC_STEERING = 9; //PWM
@@ -32,13 +28,20 @@ const int JOYHORI = A2;
 const int JOYVERT = A4;
 
 //CONSTANT VALUES
-const int JOY_MOTOR_MIDDLE = 0;
-const int JOY_STEER_MIDDLE = 0;
+int JOY_MOTOR_MIDDLE = 0;
+int JOY_STEER_MIDDLE = 0;
 const int JOY_DEADZONE = 250;         //how far away from center do you need to push the joystick before it's initialized?
+int RC_SPEED_MIDDLE = 0;
+int RC_STEERING_MIDDLE = 0;
+int RC_STOP_MIDDLE = 0;
+const int RC_DEADZONE = 200;
 
-const int motor_bwdSpeed = 500;
-const int motor_zeroSpeed = 1500;
-const int motor_fwdSpeed = 2500;
+
+const int motor_bwdSpeed = 1100;
+const int motor_zeroSpeed = 1450;
+const int motor_fwdSpeed = 1850;
+const int motor_brakeBuffer = 100;
+
 const int steering_left = 500;
 const int steering_middle = 1500;
 const int steering_right = 2500;
@@ -48,13 +51,57 @@ const int steering_right = 2500;
 //VARIABLES
 int joy_motorvalue;
 int joy_steervalue;
-int rc_motor;
-int rc_steer;
-int rc_stop;
 
 //Motor Controller (viewed by arduino as a servo)
-Servo MOTOR
+Servo MOTOR;
 Servo STEER;
+
+
+// see https://www.arduino.cc/reference/en/language/functions/external-interrupts/attachinterrupt/ for info on interrupts, Interrupt Service Routines (ISRs), etc.
+class PWM {
+  int pin;
+  bool prev_state;
+  unsigned long time;
+  int value;
+  unsigned int time_low = 0;
+  unsigned int time_high = 0;
+
+  public:
+    PWM(int pwm_pin) {
+      pin = pwm_pin;
+    }
+    void start() {
+      prev_state = digitalRead(pin);
+      time = micros();
+      pinMode(pin, INPUT);
+      attachInterrupt(digitalPinToInterrupt(pin), InterruptServiceRoutine, CHANGE);
+    }
+
+    int GetValue() { return value; }
+
+    void InterruptServiceRoutine() {
+      unsigned long curr_time = micros();
+      bool curr_state = digitalRead(pin);
+      if (curr_state != prev_state) {
+        if (curr_state) { // switched from low to high
+          time_low = curr_time - time;
+          time = curr_time;
+          value = (int)((time_high / (time_low + time_high)) * 100);
+            // save percentage of time high to value
+        } 
+        else { // switched from high to low
+          time_high = curr_time - time;
+          time = curr_time;
+        }
+        prev_state = curr_state;
+      }
+    }
+};
+
+//PWM class allows us to read PWM signals from the RC receiver using interrupts instead of pulseIn which can be slow
+PWM rc_motor(RC_SPEED);
+PWM rc_steer(RC_STEERING);
+PWM rc_stop(RC_EMERGENCYSTOP);
 
 //-------------------FUNCTIONS START HERE--------------------------------
 
@@ -65,17 +112,18 @@ void setup() {
 
   //set input and output pins for arduino
   pinMode(JOYSTICKSWITCH, INPUT);
-  pinMode(RC_SPEED, INPUT);
-  pinMode(RC_STEERING, INPUT);
-  pinMode(RC_EMERGENCYSTOP, INPUT);
   pinMode(SPEEDCONTROLLER, INPUT);
   pinMode(JOYHORI, INPUT);
   pinMode(JOYVERT, INPUT);
   
-  MOTOR.attach(MOTOR_output)
+  rc_motor.start();
+  rc_steer.start();
+  rc_stop.start();
+  
+  MOTOR.attach(MOTOR_output);
   STEER.attach(STEERING_output);
 
-  MOTOR.writeMicroseconds(motor_zerospeed);
+  MOTOR.writeMicroseconds(motor_zeroSpeed);
   STEER.writeMicroseconds(steering_middle);
 
   setJoystick();
@@ -87,9 +135,6 @@ void loop() {
   //take in analog input to read what values the joystick and RC controller are sending
   joy_motorvalue = analogRead(JOYVERT);
   joy_steervalue = analogRead(JOYHORI);
-  rc_motor = GetPWM(RC_MOTOR);
-  rc_steer = GetPWM(RC_STEER);
-  rc_stop = GetPWM(RC_EMERGENCYSTOP);
 
 
   //print out values to the serial monitor so that we can look at them
@@ -98,27 +143,29 @@ void loop() {
   Serial.print("Joy steer:          ");
   Serial.println(joy_steervalue);
   Serial.print("RC motor:           ");
-  Serial.println(rc_motor);
+  Serial.println(rc_motor.GetValue());
   Serial.print("RC steer:           ");
-  Serial.println(rc_steer);
+  Serial.println(rc_steer.GetValue());
   Serial.print("RC Emergency Stop:  ");
-  Serial.println(rc_stop);
+  Serial.println(rc_stop.GetValue());
   Serial.println();
 
   // TEST FOR EMERGENCY STOP
-  if (rc_stop != 0) {
+  if (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) {
     EmergencyStop();
   }
 
   // SEND SIGNAL TO MOTOR
-  if (rc_motor != 0) { // prioritize the rc controller
-    MOTOR.writeMicroseconds(rc_motor);
+  if (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+    MOTOR.writeMicroseconds(rc_motor.GetValue());
   }
   else {
-    if (joy_motorvalue > JOY_MOTORMIDDLE + JOY_DEADZONE) {
+    if (joy_motorvalue > JOY_MOTOR_MIDDLE + JOY_DEADZONE) {
       MOTOR.writeMicroseconds(motor_fwdSpeed);
     }
-    else if (joy_motorvalue < JOY_MOTORMIDDLE - JOY_DEADZONE) {
+    else if (joy_motorvalue < JOY_MOTOR_MIDDLE - JOY_DEADZONE) {
       MOTOR.writeMicroseconds(motor_bwdSpeed);
     }
     else {
@@ -127,14 +174,15 @@ void loop() {
   }
   
   // SEND SIGNAL TO STEERING
-  if (rc_steer != 0) { // prioritize the rc controller
-    STEER.writeMicroseconds(rc_steer);
+  if (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+    STEER.writeMicroseconds(rc_steer.GetValue());
   }
   else {
-    if (joy_motorvalue > JOY_MOTORMIDDLE + JOY_DEADZONE) {
+    if (joy_motorvalue > JOY_STEER_MIDDLE + JOY_DEADZONE) {
       STEER.writeMicroseconds(steering_right);
     }
-    else if (joy_motorvalue < JOY_MOTORMIDDLE - JOY_DEADZONE) {
+    else if (joy_motorvalue < JOY_STEER_MIDDLE - JOY_DEADZONE) {
       STEER.writeMicroseconds(steering_left);
     }
     else {
@@ -143,24 +191,8 @@ void loop() {
   }
 }
 
-  void setJoystick(){
-    //is joystickswitch flipped?
-  }
-
-  byte GetPWM(byte pin)
-  {
-    unsigned long highTime = pulseIn(pin, HIGH, 50000UL);  // 50 millisecond timeout
-    unsigned long lowTime = pulseIn(pin, LOW, 50000UL);  // 50 millisecond timeout
-
-    // pulseIn() returns zero on timeout
-    if (highTime == 0 || lowTime == 0)
-      return digitalRead(pin) ? 100 : 0;  // HIGH == 100%,  LOW = 0%
-
-    return (100 * highTime) / (highTime + lowTime);  // highTime as percentage of total cycle time
-  }
-
-  void EmergencyStop() {
-    // does rc send stop consistently? or just once?
-    // if consistently, wait for release of button
-    while (rc_stop);
-  }
+void EmergencyStop() {
+  // does rc send stop consistently? or just once?
+  // if consistently, wait for release of button
+  //while (rc_stop);
+}
