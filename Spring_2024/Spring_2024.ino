@@ -58,7 +58,7 @@ class PWM {
   int pin;
   bool prevState;
   unsigned long time;
-  int value = -1;
+  int value = -1; // given in terms of a duty cycle percentage
   unsigned int timeLow = 0;
   unsigned int timeHigh = 0;
 
