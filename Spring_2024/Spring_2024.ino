@@ -38,9 +38,9 @@ int motor_fwdSpeed = 1900;
 const int motor_brakeBuffer = 100;
 
 const int steering_distanceFromZero = 500;
-int steering_left = 1000;
+int steering_left = 1250;
 int steering_middle = 1500;
-int steering_right = 2000;
+int steering_right = 1750;
 
 
 
@@ -140,6 +140,7 @@ void loop() {
 
 
   //print out values to the serial monitor so that we can look at them
+  /*
   Serial.print("Joy motor:          ");
   Serial.println(joy_motorValue);
   Serial.print("Joy steer:          ");
@@ -151,16 +152,17 @@ void loop() {
   Serial.print("RC Emergency Stop:  ");
   Serial.println(rc_stop.GetValue());
   Serial.println();
+  */
 
   // TEST FOR EMERGENCY STOP
-  if (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) {
+  if (false && (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) {
     EmergencyStop();
   }
 
   // SEND SIGNAL TO MOTOR
-  if (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+  if (false && (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) { // prioritize the rc controller
     MOTOR.writeMicroseconds(rc_motor.GetValue());
   }
   else if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE ||
@@ -174,8 +176,8 @@ void loop() {
 
 
   // SEND SIGNAL TO STEERING
-  if (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+  if (false && (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) { // prioritize the rc controller
     STEER.writeMicroseconds(rc_steer.GetValue());
   }
   else if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE ||
