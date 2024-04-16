@@ -163,38 +163,30 @@ void loop() {
       rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
     MOTOR.writeMicroseconds(rc_motor.GetValue());
   }
-  else {
-    if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE) {
-      int speed = map(joy_motorValue, JOY_MOTOR_MIDDLE, 1023, motor_zeroSpeed, motor_fwdSpeed);
+  else if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE ||
+            joy_motorValue < JOY_MOTOR_MIDDLE - JOY_DEADZONE) {
+      int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
       MOTOR.writeMicroseconds(speed);
-    }
-    else if (joy_motorValue < JOY_MOTOR_MIDDLE - JOY_DEADZONE) {
-      int speed = map(joy_motorValue, JOY_MOTOR_MIDDLE, 1023, motor_zeroSpeed, motor_fwdSpeed);
-      MOTOR.writeMicroseconds(speed);
-    }
-    else {
-      MOTOR.writeMicroseconds(motor_zeroSpeed);
-    }
   }
-  
+  else {
+    MOTOR.writeMicroseconds(motor_zeroSpeed);
+  }
+
+
   // SEND SIGNAL TO STEERING
   if (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
       rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
     STEER.writeMicroseconds(rc_steer.GetValue());
   }
-  else {
-    if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE) {
-      int steer = map(joy_steerValue, JOY_STEER_MIDDLE, 1023, steering_middle, steering_right);
+  else if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE ||
+            joy_steerValue < JOY_STEER_MIDDLE - JOY_DEADZONE) {
+      int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
       STEER.writeMicroseconds(steer);
-    }
-    else if (joy_steerValue < JOY_STEER_MIDDLE - JOY_DEADZONE) {
-      int steer = map(joy_steerValue, JOY_STEER_MIDDLE, 1023, steering_middle, steering_right);
-      STEER.writeMicroseconds(steer);
-    }
-    else {
-      STEER.writeMicroseconds(steering_middle);
-    }
   }
+  else {
+    STEER.writeMicroseconds(steering_middle);
+  }
+
 }
 
 // ----------- HELPER FUNCTIONS ----------- //
