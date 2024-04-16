@@ -25,7 +25,7 @@ const int JOYVERT = A4;
 //CONSTANT VALUES
 int JOY_MOTOR_MIDDLE = 0;
 int JOY_STEER_MIDDLE = 0;
-const int JOY_DEADZONE = 250;         //how far away from center do you need to push the joystick before it's initialized?
+const int JOY_DEADZONE = 130;         //how far away from center do you need to push the joystick before it's initialized?
 int RC_SPEED_MIDDLE = 50;
 int RC_STEERING_MIDDLE = 50;
 int RC_STOP_MIDDLE = 50;
@@ -37,9 +37,10 @@ const int motor_zeroSpeed = 1500;
 int motor_fwdSpeed = 1900;
 const int motor_brakeBuffer = 100;
 
-const int steering_left = 1000;
-const int steering_middle = 1500;
-const int steering_right = 2000;
+const int steering_distanceFromZero = 500;
+int steering_left = 1000;
+int steering_middle = 1500;
+int steering_right = 2000;
 
 
 
@@ -164,10 +165,12 @@ void loop() {
   }
   else {
     if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE) {
-      MOTOR.writeMicroseconds(motor_fwdSpeed);
+      int speed = map(joy_motorValue, JOY_MOTOR_MIDDLE, 1023, motor_zeroSpeed, motor_fwdSpeed);
+      MOTOR.writeMicroseconds(speed);
     }
     else if (joy_motorValue < JOY_MOTOR_MIDDLE - JOY_DEADZONE) {
-      MOTOR.writeMicroseconds(motor_bwdSpeed);
+      int speed = map(joy_motorValue, JOY_MOTOR_MIDDLE, 1023, motor_zeroSpeed, motor_fwdSpeed);
+      MOTOR.writeMicroseconds(speed);
     }
     else {
       MOTOR.writeMicroseconds(motor_zeroSpeed);
@@ -181,10 +184,12 @@ void loop() {
   }
   else {
     if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE) {
-      STEER.writeMicroseconds(steering_right);
+      int steer = map(joy_steerValue, JOY_STEER_MIDDLE, 1023, steering_middle, steering_right);
+      STEER.writeMicroseconds(steer);
     }
     else if (joy_steerValue < JOY_STEER_MIDDLE - JOY_DEADZONE) {
-      STEER.writeMicroseconds(steering_left);
+      int steer = map(joy_steerValue, JOY_STEER_MIDDLE, 1023, steering_middle, steering_right);
+      STEER.writeMicroseconds(steer);
     }
     else {
       STEER.writeMicroseconds(steering_middle);
@@ -208,6 +213,8 @@ void SetSpeed() {
   motor_fwdSpeed = motor_zeroSpeed + distFromZero;
   motor_bwdSpeed = motor_zeroSpeed - distFromZero;
 
+  motor_fwdSpeed = 1900;
+  motor_bwdSpeed = 1100;
 }
 
 void EmergencyStop() {
