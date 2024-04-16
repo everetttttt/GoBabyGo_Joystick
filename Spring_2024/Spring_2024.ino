@@ -13,14 +13,15 @@
 
 //PINS (ordered clockwise around the arduino nano every)
 const int JOYSTICKSWITCH = 12;
-const int RC_SPEED = 10; //PWM
-const int RC_STEERING = 9; //PWM
-const int RC_EMERGENCYSTOP = 6; //PWM
+const int RC_SPEED = 9; //PWM  10 9 6
+const int RC_STEERING = 8; //PWM
+const int RC_EMERGENCYSTOP = 7; //PWM
 const int STEERING_output = 5; //PWM - this controls either the linear actuator or servo, depending on which is selected to steer the car
 const int MOTOR_output = 3; //PWM
 const int SPEEDCONTROLLER = A0;
 const int JOYHORI = A2;
 const int JOYVERT = A4;
+const int STEERINGADJUSTMENT = A6;
 
 //CONSTANT VALUES
 int JOY_MOTOR_MIDDLE = 0;
@@ -37,7 +38,7 @@ const int motor_zeroSpeed = 1500;
 int motor_fwdSpeed = 1900;
 const int motor_brakeBuffer = 100;
 
-const int steering_distanceFromZero = 500;
+const int steering_distanceFromZero = 250;
 int steering_left = 1250;
 int steering_middle = 1500;
 int steering_right = 1750;
@@ -80,13 +81,15 @@ class PWM {
       bool currState = digitalRead(pin);
       if (currState != prevState) {
         if (currState) { // switched from low to high
-          timeLow = currTime - time;
           time = currTime;
-          value = (int)((timeHigh / (timeLow + timeHigh)) * 100);
+          //timeLow = currTime - time;
+          //time = currTime;
+          //value = (int)((timeHigh / (timeLow + timeHigh)) * 100);
             // value = percentage of time high
         } 
         else { // switched from high to low
-          timeHigh = currTime - time;
+          //timeHigh = currTime - time;
+          value = (int)(currTime - time);
           time = currTime;
         }
         prevState = currState;
@@ -126,8 +129,13 @@ void setup() {
   STEER.writeMicroseconds(steering_middle);
 
   setConstants();
-}
 
+  pinMode(12, OUTPUT);
+  digitalWrite(12, HIGH);
+  pinMode(10, OUTPUT);
+  digitalWrite(10, LOW);  
+}
+int print = 0;
 // put your main code here, to run repeatedly:
 void loop() {
 
@@ -136,23 +144,27 @@ void loop() {
   joy_steerValue = analogRead(JOYHORI);
 
   //read speed controller and set speed values
-  SetSpeed();
+  //SetSpeed();
+  //SetSteering();
 
 
   //print out values to the serial monitor so that we can look at them
-  /*
-  Serial.print("Joy motor:          ");
-  Serial.println(joy_motorValue);
-  Serial.print("Joy steer:          ");
-  Serial.println(joy_steerValue);
-  Serial.print("RC motor:           ");
-  Serial.println(rc_motor.GetValue());
-  Serial.print("RC steer:           ");
-  Serial.println(rc_steer.GetValue());
-  Serial.print("RC Emergency Stop:  ");
-  Serial.println(rc_stop.GetValue());
-  Serial.println();
-  */
+  if (print == 1500){
+    Serial.print("Joy motor:          ");
+    Serial.println(joy_motorValue);
+    Serial.print("Joy steer:          ");
+    Serial.println(joy_steerValue);
+    Serial.print("RC motor:           ");
+    Serial.println(rc_motor.GetValue());
+    Serial.print("RC steer:           ");
+    Serial.println(rc_steer.GetValue());
+    Serial.print("RC Emergency Stop:  ");
+    Serial.println(rc_stop.GetValue());
+    Serial.println();
+    print = 0;
+  }
+  print++;
+
 
   // TEST FOR EMERGENCY STOP
   if (false && (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
@@ -206,9 +218,15 @@ void SetSpeed() {
     //distFromZero is split into 8 sections in the top two thirds of motor_maxDistanceFromZero
   motor_fwdSpeed = motor_zeroSpeed + distFromZero;
   motor_bwdSpeed = motor_zeroSpeed - distFromZero;
+}
 
-  motor_fwdSpeed = 1900;
-  motor_bwdSpeed = 1100;
+void SetSteering() {
+  int steerValue = analogRead(STEERINGADJUSTMENT);
+  steerValue = map(steerValue, 0, 1023, -100, 100);
+  steering_middle = 1500 + steerValue;
+  steering_left = steering_middle + steering_distanceFromZero;
+  steering_right = steering_middle - steering_distanceFromZero;
+
 }
 
 void EmergencyStop() {
