@@ -1,6 +1,6 @@
 //GoBabyGo Wichita State University
 //Spring 2024
-//project done by Everett Kernen and Jackson Truitt
+//project by Everett Kernen and Jackson Truitt
 
 //It should be noted this code uses a custom PCB to connect wires together. See details for that in the README, if I remember
 
@@ -42,7 +42,7 @@ int motor_fwdSpeed = 1900;
 const int steering_maxDistanceFromZero = 500;
 int steering_left = 1300;
 int steering_middle = 1500;
-int steering_right = 1800;
+int steering_right = 1700;
 
 
 
@@ -184,20 +184,18 @@ void loop() {
   count++;
 
   // TEST FOR EMERGENCY STOP
-  if (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) {
-        Serial.println("EMERGENCY STOP ACTIVATED");
+  if (rc_stop.GetValue() > (RC_STOP_MIDDLE + RC_DEADZONE) || rc_stop.GetValue() < (RC_STOP_MIDDLE - RC_DEADZONE)) {
+    Serial.println("EMERGENCY STOP ACTIVATED");
     EmergencyStop();
   }
 
   // SEND SIGNAL TO MOTOR
-  if (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+  if (rc_motor.GetValue() > (RC_STOP_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_STOP_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
     Serial.println("RC MOTOR OVERRIDE");
-    MOTOR.writeMicroseconds(rc_motor.GetValue());
+    int speed = map(rc_motor.GetValue(), 1000, 2000, motor_bwdSpeed, motor_fwdSpeed);
+    MOTOR.writeMicroseconds(speed);
   }
-  else if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE ||
-            joy_motorValue < JOY_MOTOR_MIDDLE - JOY_DEADZONE) {
+  else if (false) { //(joy_motorValue > (JOY_MOTOR_MIDDLE + JOY_DEADZONE) || joy_motorValue < (JOY_MOTOR_MIDDLE - JOY_DEADZONE)) {
       int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
       MOTOR.writeMicroseconds(speed);
   }
@@ -207,13 +205,12 @@ void loop() {
 
 
   // SEND SIGNAL TO STEERING
-  if (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+  if (rc_steer.GetValue() > (RC_STOP_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STOP_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
     Serial.println("RC STEERING OVERRIDE");
-    STEER.writeMicroseconds(rc_steer.GetValue());
+    int steer = map(rc_steer.GetValue(), 1000, 2000, steering_left, steering_right);
+    STEER.writeMicroseconds(steer);
   }
-  else if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE ||
-            joy_steerValue < JOY_STEER_MIDDLE - JOY_DEADZONE) {
+  else if (false) { //(joy_steerValue > (JOY_STEER_MIDDLE + JOY_DEADZONE) || joy_steerValue < (JOY_STEER_MIDDLE - JOY_DEADZONE)) {
       int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
       STEER.writeMicroseconds(steer);
   }
@@ -232,7 +229,7 @@ void setConstants() {
 
 void SetSpeed() {
   adj_speed = analogRead(ADJ_SPEED);
-  int distFromZero = (int)map(adj_speed, 0, 1023, motor_maxDistanceFromZero / 3, motor_maxDistanceFromZero);
+  int distFromZero = map(adj_speed, 0, 1023, motor_maxDistanceFromZero / 3, motor_maxDistanceFromZero);
     // gives value in top two thirds of speed allowed
   motor_fwdSpeed = motor_zeroSpeed + distFromZero;
   motor_bwdSpeed = motor_zeroSpeed - distFromZero;
@@ -241,8 +238,8 @@ void SetSpeed() {
 void SetSteer() {
   adj_steerCenter = analogRead(ADJ_STEERINGCENTER);
   adj_steerRange = analogRead(ADJ_STEERINGRANGE);
-  steering_middle = (int)map(adj_steerCenter, 0, 1023, 1400, 1600);
-  int distFromCenter = (int)map(adj_steerRange, 0, 1023, 50, steering_maxDistanceFromZero);
+  steering_middle = map(adj_steerCenter, 0, 1023, 1400, 1600);
+  int distFromCenter = map(adj_steerRange, 0, 1023, 50, steering_maxDistanceFromZero);
   steering_left = steering_middle - distFromCenter;
   steering_right = steering_middle + distFromCenter;
 }
