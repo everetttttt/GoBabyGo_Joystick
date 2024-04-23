@@ -8,48 +8,50 @@
 
 //TODO:
 //test (obviously)
-//set up emergency stop func
-//initialize RC values
-//implement steering center and range
 
+const bool DEBUG = true;
+const int DEBUG_FREQ = 10000;
+int count = 0;
 
 //PINS (ordered clockwise around the arduino nano every)
-const int JOYSTICKSWITCH = 12;
-const int RC_SPEED = 10; //PWM
-const int RC_STEERING = 9; //PWM
-const int RC_EMERGENCYSTOP = 6; //PWM
+const int RC_SPEED = 9; //PWM
+const int RC_STEERING = 8; //PWM
+const int RC_EMERGENCYSTOP = 7; //PWM
 const int STEERING_output = 5; //PWM - this controls either the linear actuator or servo, depending on which is selected to steer the car
 const int MOTOR_output = 3; //PWM
-const int SPEEDCONTROLLER = A0;
-const int JOYHORI = A2;
-const int JOYVERT = A4;
+const int JOYHORI = A0; //A6
+const int JOYVERT = A2; //A4
+const int ADJ_SPEED = A2;
+const int ADJ_STEERINGRANGE = A1;
+const int ADJ_STEERINGCENTER = A0;
 
 //CONSTANT VALUES
-int JOY_MOTOR_MIDDLE = 0;
-int JOY_STEER_MIDDLE = 0;
+int JOY_MOTOR_MIDDLE = 512;
+int JOY_STEER_MIDDLE = 512;
 const int JOY_DEADZONE = 130;         //how far away from center do you need to push the joystick before it's initialized?
-int RC_SPEED_MIDDLE = 50;
-int RC_STEERING_MIDDLE = 50;
-int RC_STOP_MIDDLE = 50;
-const int RC_DEADZONE = 25;
+int RC_SPEED_MIDDLE = 1500;
+int RC_STEERING_MIDDLE = 1500;
+int RC_STOP_MIDDLE = 1300;
+const int RC_DEADZONE = 250;
 
 const int motor_maxDistanceFromZero = 400; // distance from fwdSpeed and bwdSpeed, used for speed controller
 int motor_bwdSpeed = 1100;
 const int motor_zeroSpeed = 1500;
 int motor_fwdSpeed = 1900;
-const int motor_brakeBuffer = 100;
 
-const int steering_distanceFromZero = 500;
-int steering_left = 1250;
+const int steering_maxDistanceFromZero = 500;
+int steering_left = 1300;
 int steering_middle = 1500;
-int steering_right = 1750;
+int steering_right = 1800;
 
 
 
 //VARIABLES
 int joy_motorValue;
 int joy_steerValue;
-int speedValue;
+int adj_speed;
+int adj_steerCenter;
+int adj_steerRange;
 
 //Motor Controller (viewed by arduino as a servo), see https://www.arduino.cc/reference/en/libraries/servo/writemicroseconds/ for how we are controlling the "Servos"
 Servo MOTOR;
@@ -61,9 +63,7 @@ class PWM {
   int pin;
   bool prevState;
   unsigned long time;
-  int value = -1; // given in terms of a duty cycle percentage
-  unsigned int timeLow = 0;
-  unsigned int timeHigh = 0;
+  int value = -1;
 
   public:
     PWM(int pwm_pin) {
@@ -75,21 +75,30 @@ class PWM {
       pinMode(pin, INPUT);
     }
 
-    int GetValue() { return (value == -1 ? 50 : value); }
+    int GetValue() { return value; }
 
-    void InterruptServiceRoutine() {
+    void InterruptServiceRoutine(int rc) {
       unsigned long currTime = micros();
       bool currState = digitalRead(pin);
       if (currState != prevState) {
         if (currState) { // switched from low to high
-          timeLow = currTime - time;
           time = currTime;
-          value = (int)((timeHigh / (timeLow + timeHigh)) * 100);
-            // value = percentage of time high
         } 
         else { // switched from high to low
-          timeHigh = currTime - time;
-          time = currTime;
+          value = currTime - time;
+          /*
+          switch (rc) { // set rc middle values if not yet set
+            case 0:
+              RC_SPEED_MIDDLE = (RC_SPEED_MIDDLE == -1 ? value : RC_SPEED_MIDDLE);
+              break;
+            case 1:
+              RC_STEERING_MIDDLE = (RC_STEERING_MIDDLE == -1 ? value : RC_STEERING_MIDDLE);
+              break;
+            case 2:
+              RC_STOP_MIDDLE = (RC_STOP_MIDDLE == -1 ? value : RC_STOP_MIDDLE);
+              break;
+          }
+          */
         }
         prevState = currState;
       }
@@ -105,14 +114,14 @@ PWM rc_stop(RC_EMERGENCYSTOP);
 
 // put your setup code here, to run once:
 void setup() {
-
   Serial.begin(9600);   //tells arduino how fast to interact with the Serial Monitor
 
   //set input and output pins for arduino
-  pinMode(JOYSTICKSWITCH, INPUT);
-  pinMode(SPEEDCONTROLLER, INPUT);
   pinMode(JOYHORI, INPUT);
   pinMode(JOYVERT, INPUT);
+  pinMode(ADJ_SPEED, INPUT);
+  pinMode(ADJ_STEERINGRANGE, INPUT);
+  pinMode(ADJ_STEERINGCENTER, INPUT);
   
   rc_motor.start();
   attachInterrupt(digitalPinToInterrupt(RC_SPEED), RCMotorInterrupt, CHANGE);
@@ -128,6 +137,11 @@ void setup() {
   STEER.writeMicroseconds(steering_middle);
 
   setConstants();
+
+  pinMode(12, OUTPUT);
+  pinMode(10, OUTPUT);
+  digitalWrite(12, HIGH);
+  digitalWrite(10, LOW);
 }
 
 // put your main code here, to run repeatedly:
@@ -138,33 +152,48 @@ void loop() {
   joy_steerValue = analogRead(JOYHORI);
 
   //read speed controller and set speed values
-  SetSpeed();
+  //SetSpeed();
+  //SetSteer();
 
 
   //print out values to the serial monitor so that we can look at them
-  /*
-  Serial.print("Joy motor:          ");
-  Serial.println(joy_motorValue);
-  Serial.print("Joy steer:          ");
-  Serial.println(joy_steerValue);
-  Serial.print("RC motor:           ");
-  Serial.println(rc_motor.GetValue());
-  Serial.print("RC steer:           ");
-  Serial.println(rc_steer.GetValue());
-  Serial.print("RC Emergency Stop:  ");
-  Serial.println(rc_stop.GetValue());
-  Serial.println();
-  */
+  if (DEBUG && count == DEBUG_FREQ) {
+    Serial.print("Joy motor:          ");
+    Serial.print(joy_motorValue);
+    Serial.print("   Motor Middle:      ");
+    Serial.println(JOY_MOTOR_MIDDLE);
+    Serial.print("Joy steer:          ");
+    Serial.print(joy_steerValue);
+    Serial.print("   Steer Middle:      ");
+    Serial.println(JOY_STEER_MIDDLE);
+    Serial.print("RC motor:           ");
+    Serial.print(rc_motor.GetValue());
+    Serial.print("  RC Motor Middle:    ");
+    Serial.println(RC_SPEED_MIDDLE);
+    Serial.print("RC steer:           ");
+    Serial.print(rc_steer.GetValue());
+    Serial.print("  RC Steer Middle:    ");
+    Serial.println(RC_STEERING_MIDDLE);
+    Serial.print("RC Emergency Stop:  ");
+    Serial.print(rc_stop.GetValue());
+    Serial.print("  RC Stop Middle:    ");
+    Serial.println(RC_STOP_MIDDLE);
+    Serial.println();
+    count = 0;
+  }
+  count++;
 
   // TEST FOR EMERGENCY STOP
-  if (false && (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) {
+  if (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) {
+        Serial.println("EMERGENCY STOP ACTIVATED");
     EmergencyStop();
   }
 
   // SEND SIGNAL TO MOTOR
-  if (false && (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) { // prioritize the rc controller
+  if (rc_motor.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_motor.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+    Serial.println("RC MOTOR OVERRIDE");
     MOTOR.writeMicroseconds(rc_motor.GetValue());
   }
   else if (joy_motorValue > JOY_MOTOR_MIDDLE + JOY_DEADZONE ||
@@ -178,8 +207,9 @@ void loop() {
 
 
   // SEND SIGNAL TO STEERING
-  if (false && (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
-      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE)) { // prioritize the rc controller
+  if (rc_steer.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_steer.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) { // prioritize the rc controller
+    Serial.println("RC STEERING OVERRIDE");
     STEER.writeMicroseconds(rc_steer.GetValue());
   }
   else if (joy_steerValue > JOY_STEER_MIDDLE + JOY_DEADZONE ||
@@ -201,24 +231,30 @@ void setConstants() {
 }
 
 void SetSpeed() {
-  speedValue = analogRead(SPEEDCONTROLLER);
-  speedValue /= 128; // cut down to values between 0 and 7, inclusive
-  speedValue++; // 1 to 8
-  int distFromZero = (int)(motor_maxDistanceFromZero / 3) + (int)(motor_maxDistanceFromZero / 12 * speedValue);
-    //distFromZero is split into 8 sections in the top two thirds of motor_maxDistanceFromZero
+  adj_speed = analogRead(ADJ_SPEED);
+  int distFromZero = (int)map(adj_speed, 0, 1023, motor_maxDistanceFromZero / 3, motor_maxDistanceFromZero);
+    // gives value in top two thirds of speed allowed
   motor_fwdSpeed = motor_zeroSpeed + distFromZero;
   motor_bwdSpeed = motor_zeroSpeed - distFromZero;
+}
 
-  motor_fwdSpeed = 1900;
-  motor_bwdSpeed = 1100;
+void SetSteer() {
+  adj_steerCenter = analogRead(ADJ_STEERINGCENTER);
+  adj_steerRange = analogRead(ADJ_STEERINGRANGE);
+  steering_middle = (int)map(adj_steerCenter, 0, 1023, 1400, 1600);
+  int distFromCenter = (int)map(adj_steerRange, 0, 1023, 50, steering_maxDistanceFromZero);
+  steering_left = steering_middle - distFromCenter;
+  steering_right = steering_middle + distFromCenter;
 }
 
 void EmergencyStop() {
-  // does rc send stop consistently? or just once?
-  // if consistently, wait for release of button
-  //while (rc_stop);
+  while (rc_stop.GetValue() < RC_STOP_MIDDLE - RC_DEADZONE ||
+      rc_stop.GetValue() > RC_STOP_MIDDLE + RC_DEADZONE) {
+        MOTOR.writeMicroseconds(motor_zeroSpeed);
+        STEER.writeMicroseconds(steering_middle);
+  }
 }
 
-void RCMotorInterrupt() { rc_motor.InterruptServiceRoutine(); }
-void RCSteerInterrupt() { rc_steer.InterruptServiceRoutine(); }
-void RCStopInterrupt() { rc_stop.InterruptServiceRoutine(); }
+void RCMotorInterrupt() { rc_motor.InterruptServiceRoutine(0); }
+void RCSteerInterrupt() { rc_steer.InterruptServiceRoutine(1); }
+void RCStopInterrupt() { rc_stop.InterruptServiceRoutine(2); }
