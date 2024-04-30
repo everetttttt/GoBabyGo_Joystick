@@ -19,8 +19,8 @@ const int RC_STEERING = 8; //PWM
 const int RC_EMERGENCYSTOP = 7; //PWM
 const int STEERING_output = 5; //PWM - this controls either the linear actuator or servo, depending on which is selected to steer the car
 const int MOTOR_output = 3; //PWM
-const int JOYHORI = A0; //A6
-const int JOYVERT = A2; //A4
+const int JOYHORI = A6;
+const int JOYVERT = A4;
 const int ADJ_SPEED = A2;
 const int ADJ_STEERINGRANGE = A1;
 const int ADJ_STEERINGCENTER = A0;
@@ -136,12 +136,7 @@ void setup() {
   MOTOR.writeMicroseconds(motor_zeroSpeed);
   STEER.writeMicroseconds(steering_middle);
 
-  setConstants();
-
-  pinMode(12, OUTPUT);
-  pinMode(10, OUTPUT);
-  digitalWrite(12, HIGH);
-  digitalWrite(10, LOW);
+  setMiddles();
 }
 
 // put your main code here, to run repeatedly:
@@ -153,7 +148,7 @@ void loop() {
 
   //read speed controller and set speed values
   //SetSpeed();
-  //SetSteer();
+  SetSteer();
 
 
   //print out values to the serial monitor so that we can look at them
@@ -162,18 +157,22 @@ void loop() {
     Serial.print(joy_motorValue);
     Serial.print("   Motor Middle:      ");
     Serial.println(JOY_MOTOR_MIDDLE);
+
     Serial.print("Joy steer:          ");
     Serial.print(joy_steerValue);
     Serial.print("   Steer Middle:      ");
     Serial.println(JOY_STEER_MIDDLE);
+
     Serial.print("RC motor:           ");
     Serial.print(rc_motor.GetValue());
     Serial.print("  RC Motor Middle:    ");
     Serial.println(RC_SPEED_MIDDLE);
+
     Serial.print("RC steer:           ");
     Serial.print(rc_steer.GetValue());
     Serial.print("  RC Steer Middle:    ");
     Serial.println(RC_STEERING_MIDDLE);
+
     Serial.print("RC Emergency Stop:  ");
     Serial.print(rc_stop.GetValue());
     Serial.print("  RC Stop Middle:    ");
@@ -188,16 +187,18 @@ void loop() {
     Serial.println("EMERGENCY STOP ACTIVATED");
     EmergencyStop();
   }
+  
+
 
   // SEND SIGNAL TO MOTOR
-  if (rc_motor.GetValue() > (RC_STOP_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_STOP_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
+  if (rc_motor.GetValue() > (RC_SPEED_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_SPEED_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
     Serial.println("RC MOTOR OVERRIDE");
     int speed = map(rc_motor.GetValue(), 1000, 2000, motor_bwdSpeed, motor_fwdSpeed);
     MOTOR.writeMicroseconds(speed);
   }
-  else if (false) { //(joy_motorValue > (JOY_MOTOR_MIDDLE + JOY_DEADZONE) || joy_motorValue < (JOY_MOTOR_MIDDLE - JOY_DEADZONE)) {
-      int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
-      MOTOR.writeMicroseconds(speed);
+  else if (joy_motorValue > (JOY_MOTOR_MIDDLE + JOY_DEADZONE) || joy_motorValue < (JOY_MOTOR_MIDDLE - JOY_DEADZONE)) {
+    int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
+    MOTOR.writeMicroseconds(speed);
   }
   else {
     MOTOR.writeMicroseconds(motor_zeroSpeed);
@@ -205,14 +206,14 @@ void loop() {
 
 
   // SEND SIGNAL TO STEERING
-  if (rc_steer.GetValue() > (RC_STOP_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STOP_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
+  if (rc_steer.GetValue() > (RC_STEERING_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STEERING_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
     Serial.println("RC STEERING OVERRIDE");
     int steer = map(rc_steer.GetValue(), 1000, 2000, steering_left, steering_right);
     STEER.writeMicroseconds(steer);
   }
-  else if (false) { //(joy_steerValue > (JOY_STEER_MIDDLE + JOY_DEADZONE) || joy_steerValue < (JOY_STEER_MIDDLE - JOY_DEADZONE)) {
-      int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
-      STEER.writeMicroseconds(steer);
+  else if (joy_steerValue > (JOY_STEER_MIDDLE + JOY_DEADZONE) || joy_steerValue < (JOY_STEER_MIDDLE - JOY_DEADZONE)) {
+    int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
+    STEER.writeMicroseconds(steer);
   }
   else {
     STEER.writeMicroseconds(steering_middle);
@@ -222,7 +223,7 @@ void loop() {
 
 // ----------- HELPER FUNCTIONS ----------- //
 
-void setConstants() {
+void setMiddles() {
   JOY_MOTOR_MIDDLE = analogRead(JOYVERT);
   JOY_STEER_MIDDLE = analogRead(JOYHORI);
 }
