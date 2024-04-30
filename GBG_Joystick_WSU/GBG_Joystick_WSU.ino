@@ -28,7 +28,7 @@ const int ADJ_STEERINGCENTER = A0;
 //CONSTANT VALUES
 int JOY_MOTOR_MIDDLE = 512;
 int JOY_STEER_MIDDLE = 512;
-const int JOY_DEADZONE = 130;         //how far away from center do you need to push the joystick before it's initialized?
+const int JOY_DEADZONE = 100;         //how far away from center do you need to push the joystick before it's initialized?
 int RC_SPEED_MIDDLE = 1500;
 int RC_STEERING_MIDDLE = 1500;
 int RC_STOP_MIDDLE = 1300;
@@ -187,37 +187,47 @@ void loop() {
     Serial.println("EMERGENCY STOP ACTIVATED");
     EmergencyStop();
   }
-  
 
+  // TEST FOR RC INPUTS
+  if (rc_motor.GetValue() > (RC_SPEED_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_SPEED_MIDDLE - RC_DEADZONE) ||
+      rc_steer.GetValue() > (RC_STEERING_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STEERING_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
+    Serial.println("RC OVERRIDE");
+    if (rc_motor.GetValue() > (RC_SPEED_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_SPEED_MIDDLE - RC_DEADZONE)) {
+      int speed = map(rc_motor.GetValue(), 1000, 2000, motor_bwdSpeed, motor_fwdSpeed);
+      MOTOR.writeMicroseconds(speed);
+    }
+    else {
+      MOTOR.writeMicroseconds(motor_zeroSpeed);
+    }
 
-  // SEND SIGNAL TO MOTOR
-  if (rc_motor.GetValue() > (RC_SPEED_MIDDLE + RC_DEADZONE) || rc_motor.GetValue() < (RC_SPEED_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
-    Serial.println("RC MOTOR OVERRIDE");
-    int speed = map(rc_motor.GetValue(), 1000, 2000, motor_bwdSpeed, motor_fwdSpeed);
-    MOTOR.writeMicroseconds(speed);
-  }
-  else if (joy_motorValue > (JOY_MOTOR_MIDDLE + JOY_DEADZONE) || joy_motorValue < (JOY_MOTOR_MIDDLE - JOY_DEADZONE)) {
-    int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
-    MOTOR.writeMicroseconds(speed);
+    if (rc_steer.GetValue() > (RC_STEERING_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STEERING_MIDDLE - RC_DEADZONE)) {
+      int steer = map(rc_steer.GetValue(), 1000, 2000, steering_left, steering_right);
+      STEER.writeMicroseconds(steer);
+    }
+    else {
+      STEER.writeMicroseconds(steering_middle);
+    }
   }
   else {
-    MOTOR.writeMicroseconds(motor_zeroSpeed);
+    // SEND SIGNAL TO MOTOR
+    if (joy_motorValue > (JOY_MOTOR_MIDDLE + JOY_DEADZONE) || joy_motorValue < (JOY_MOTOR_MIDDLE - JOY_DEADZONE)) { // test for joystick input
+      int speed = map(joy_motorValue, 0, 1023, motor_bwdSpeed, motor_fwdSpeed);
+      MOTOR.writeMicroseconds(speed);
+    }
+    else {
+      MOTOR.writeMicroseconds(motor_zeroSpeed);
+    }
+
+    // SEND SIGNAL TO STEERING
+    if (joy_steerValue > (JOY_STEER_MIDDLE + JOY_DEADZONE) || joy_steerValue < (JOY_STEER_MIDDLE - JOY_DEADZONE)) { // test for joystick input
+      int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
+      STEER.writeMicroseconds(steer);
+    }
+    else {
+      STEER.writeMicroseconds(steering_middle);
+    }
   }
 
-
-  // SEND SIGNAL TO STEERING
-  if (rc_steer.GetValue() > (RC_STEERING_MIDDLE + RC_DEADZONE) || rc_steer.GetValue() < (RC_STEERING_MIDDLE - RC_DEADZONE)) { // prioritize the rc controller
-    Serial.println("RC STEERING OVERRIDE");
-    int steer = map(rc_steer.GetValue(), 1000, 2000, steering_left, steering_right);
-    STEER.writeMicroseconds(steer);
-  }
-  else if (joy_steerValue > (JOY_STEER_MIDDLE + JOY_DEADZONE) || joy_steerValue < (JOY_STEER_MIDDLE - JOY_DEADZONE)) {
-    int steer = map(joy_steerValue, 0, 1023, steering_left, steering_right);
-    STEER.writeMicroseconds(steer);
-  }
-  else {
-    STEER.writeMicroseconds(steering_middle);
-  }
 
 }
 
