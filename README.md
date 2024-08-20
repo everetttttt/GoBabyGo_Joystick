@@ -81,6 +81,8 @@ Gather your 30A bus, a spool of wire (14-18AWG), your kill switch, and your 30A 
 13. On the motor controller, cut and strip one yellow and one blue wire and crimp on the opposing spade connector.
 14. Connect the motor controller and rear motor wires.
 
+![](images/02_Bus.jpg)
+
 Now referencing our [KiCAD schematic](images/02_schematic.png), we've completed the following (outlined in blue).
 ![](images/02_schematic_Markup.png)
 
@@ -91,6 +93,7 @@ Now referencing our [KiCAD schematic](images/02_schematic.png), we've completed 
 This soldering is easily the most difficult, so be prepared. We recommend grabbing some small heat shrink tubing to go over the wires to insulate and protect the connections.
 1. Grab the joystick and two servo wires. Cut the wires and keep the female ends. We keep the female ends here because the 4 foot servo wires will connect their female ends to the male ends on the PCB.
 2. Splice the wires, solder them to the joystick leads, and cover with heat shrink tubing.
+![](images/04_Joystick.jpg)
 
 
 ## Step 5: PCB
@@ -105,6 +108,7 @@ This soldering is easily the most difficult, so be prepared. We recommend grabbi
 
 ## Step 6: RC controls
 Grab the RC receiver and place it near the PCB. Tape the antenna where there will be little interference. Run jumper wires from the receiver to the PCB, according to the below picture.
+![](images/06_RcHookups.png)
 
 ## Step 7: Fine tuning
 
