@@ -4,47 +4,132 @@
 -----------
 -----------
 
-In this tutorial you will learn how to implement a joystick into your GoBabyGo vehicle for supporting children with motor or other disabilities.
+This document aims to help guide GoBabyGo teams through the steps of building a joystick controlled ride-on car. The joystick system was built with this specific model in mind, but could be adapted to other vehicles.
+
+This design is specifically only the electronics and steering components of a GBG build. Any seating adjustments or joystick mounting mechanisms will change for each child and thus must be designed with the individual child in mind.
+
+If you have any questions regarding this project, feel free to open an issue in this repository. I will respond as soon as I can.
 
 ## TODO
 * add motor controller programmer details
 * add linear actuator installation
 * add images
 
-You will need
+## Table of Contents
+- [Bill of Materials](#bill-of-materials)
+- [Unpacking the car](#unpacking-your-car-and-components)
+- [Preparing the car](#preparing-the-car)
+- [Steering mechanism assembly](#steering-mechanism-assembly)
+
+## Bill of Materials
 -----------
-### If you are at Wichita State, many of these components will already exist in the GoBabyGo room. Check before you purchase.
-* [Vehicle](https://www.amazon.com/gp/product/B0C7JK9HNR/ref=ask_ql_qh_dp_hza?th=1)
-     - This "Jeep" is the one we used and configured the steering mechanism for. Other ride-on vehicles we have seen use extremely similar electronics, so the only difference should be the steering.
-* [Kill switch](https://www.amazon.com/Toggle-Switches-Rocker-Switch-Waterproof/dp/B07WW3WW3F)
-* [Arduino Nano Every with headers](https://store-usa.arduino.cc/collections/boards-modules/products/arduino-nano-every-with-headers)
-* [Motor Controller](https://www.amazon.com/HOBBYWING-QUICRUN-Waterproof-Brushed-Motors/dp/B07NYBF6MQ)
-* [Motor Controller Programmer](https://www.hobbywingdirect.com/products/led-pc2c?variant=172030922)
-     - The motor controller settings will be changed lower in this tutorial.
-* [Linear Actuator](https://www.servocity.com/4-stroke-25-lb-thrust-linear-servo/)
-     - At $300, this is by far the biggest opportunity we have to reduce costs. We are in the process of configuring [this servo,](https://www.amazon.com/GoolRC-Digital-Torque-Waterproof-Replacements/dp/B0B5H4MWZG) but that process is unfinished at this time.
-* [Joystick](https://www.amazon.com/Acxico-Joystick-Potentiometer-JH-D202X-R2-Thermistor/dp/B09JZ8ZV4L)
-* [RC Controller](https://www.amazon.com/DUMBORC-Transmitter-Receiver-Controller-400m-500m/dp/B07RR81GSB)
-     - Used for parent override
-* [30A bus bar](https://www.amazon.com/OONO-Position-Terminal-Distribution-Module/dp/B09D3BV22M)
-* [4 foot servo wires](https://www.readymaderc.com/products/details/120cm-48in-jr-twisted-22awg-servo-cable?srsltid=AfmBOooBtGZkchE-u-FVPZSh1Mha9t9dLRYeGN2BnarDRjaqf-3A2QVKya4)
-     - Quantity 2
-* [Potentiometer - speed control](https://www.amazon.com/Uxcell-a15040700ux0380-Terminals-Linear-Potentiometer/dp/B019I13X5K)
-* [Potentiometer - steering control](https://www.digikey.com/en/products/detail/bourns-inc/3296W-1-103LF/1088045)
-     - Quantity 2
-* [15 pin female header pins](https://www.amazon.com/2-54mm-Female-Single-Straight-Header/dp/B07VP63Z78)
-     - Connect the arduino to the PCB
-* [Male header pins](https://www.amazon.com/HiLetgo-20pcs-2-54mm-Single-Header/dp/B07R5QDL8D)
-     - Connect everything else to the PCB
-* [Spade connectors](https://www.amazon.com/Connectors-Shrink-Terminals-Female-MENTBERY/dp/B0BFDJNK91?source=ps-sl-shoppingads-lpcontext&ref_=fplfs&smid=A2TBO4E1CS6T20&th=1)
+The following tables are lists of all parts required for the electronic and mechanical components of this joystick system. Links and quantities are included.
+
+Quantities are how many per car, not how many packs to purchase. Double check if the link is a multipack.
+
+*Note that if you are at a University and your University has a GBG organization, they may already have many of these components. Check before you purchase. This is particularly true for Wichita State*
+
+### Electronics BOM
+| **Item**                         | **Link**                                                                                                                                                           | **Quantity** |   **Additional Notes** | **Item label in case of dead link**   |
+| ---                              | ---                                                                                                                                                                | ---          | ---                    | ----                                  |
+| Vehicle                          | [Link](https://www.amazon.com/gp/product/B0C7JK9HNR/ref=ask_ql_qh_dp_hza?th=1)                                                                                     | 1            | This "Jeep" is the one we used and configured the steering mechanism for. Other ride-on vehicles we have seen use extremely similar electronics, so the only difference should be the steering | Best Choice Products Kids 12V Ride On Truck, Battery Powered Toy Car w/Spring Suspension, Remote Control, 3 Speeds, LED Lights, Bluetooth - Light Blue
+| Kill Switch                      | [Link](https://www.amazon.com/Toggle-Switches-Rocker-Switch-Waterproof/dp/B07WW3WW3F)                                                                              | 1            | 8 pack | Toggle Switches 8 Pack 2 Pin ON Off SPST Car Rocker Toggle Switches, 20A Heavy Duty Waterproof Toggle Witch
+| Arduino Nano Every w/ Headers    | [Link](https://store-usa.arduino.cc/collections/boards-modules/products/arduino-nano-every-with-headers)                                                           | 1            | Microcontroller, brains of the operation | Arduino Nano Every with Headers
+| Motor Controller                 | [Link](https://www.amazon.com/HOBBYWING-QUICRUN-Waterproof-Brushed-Motors/dp/B07NYBF6MQ)                                                                           | 1            | | HOBBYWING QUICRUN 880 ESC, Waterproof ESC for Dual Brushed Motors
+| Motor Controller Programmer      | [Link](https://www.hobbywingdirect.com/products/led-pc2c?variant=172030922)                                                                                        | 1            | Only one is ever needed for a GBG org. Check to see if you have one already | HOBBYWING LED Program Card
+| Joystick                         | [Link](https://www.amazon.com/Acxico-Joystick-Potentiometer-JH-D202X-R2-Thermistor/dp/B09JZ8ZV4L)                                                                  | 1            | | Acxico 1Pcs Joystick Potentiometer JH-D202X-R2/R4 5K 10K ohm 2-axis Sealed PTZ Thermistor
+| RC Controller                    | [Link](https://www.amazon.com/DUMBORC-Transmitter-Receiver-Controller-400m-500m/dp/B07RR81GSB)                                                                     | 1            | used for parental override over the joystick controls | X4 4CH RC Radio System Transmitter and Receiver X6F 2.4ghz Remote Controller for RC Car Boat Tanks(Distance 400m-500m) Controller Transmitter
+| 30A bus bar                      | [Link](https://www.amazon.com/OONO-Position-Terminal-Distribution-Module/dp/B09D3BV22M)                                                                            | 1            | Power distribution | OONO 30Amp 48V 2x6 Position Terminal Block Distribution Module 
+| 4ft servo wires                  | [Link](https://www.readymaderc.com/products/details/120cm-48in-jr-twisted-22awg-servo-cable?srsltid=AfmBOooBtGZkchE-u-FVPZSh1Mha9t9dLRYeGN2BnarDRjaqf-3A2QVKya4)   | 1            | Connect the joystick to the arduino through the car, so lots of length is good | 120cm (48 inch) JR Style 22AWG Twisted Servo Extension Cable
+| Speed control potentiometers     | [Link](https://www.amazon.com/Uxcell-a15040700ux0380-Terminals-Linear-Potentiometer/dp/B019I13X5K)                                                                 | 1            | | uxcell 5pcs 10K OHM 3 Terminal Linear Taper Rotary Audio B Type Potentiometer Height 36cm 
+| Steering control potentiometers  | [Link](https://www.digikey.com/en/products/detail/bourns-inc/3296W-1-103LF/1088045)                                                                                | 2            | Dial in steering center and range | Bourns 3296W-1-103LF
+| 15 pin female header pins        | [Link](https://www.amazon.com/2-54mm-Female-Single-Straight-Header/dp/B07VP63Z78)                                                                                  | 2            | Connect the arduino to the PCB | 10 pcs. 15 Pin 2.54mm Pitch 15 Pin Female Single Row Straight Header Strip PH:8.5mm 
+| Male header pins                 | [Link](https://www.amazon.com/HiLetgo-20pcs-2-54mm-Single-Header/dp/B07R5QDL8D)                                                                                    | 1            | Connect everything else to the PCB. You'll break them off in 3 pin chunks, of which you'll need 7. 21 pins total | HiLetgo 20pcs 40P 2.54mm Pitch Single Row Pin Header Strip 40Pin 2.54mm Pitch 
+| Spade connectors                 | [Link](https://www.amazon.com/Connectors-Shrink-Terminals-Female-MENTBERY/dp/B0BFDJNK91?source=ps-sl-shoppingads-lpcontext&ref_=fplfs&smid=A2TBO4E1CS6T20&th=1)    | 4            | Connect the motor controller wires to the motor wires. | 150 PCS Spade Connectors, Heat Shrink Spade Terminals 22-10 AWG, Wire Connectors Male and Female by MENTBERY 
+| PCB                              | none                                                                                                                                                               | 1            | See notes below | See notes below
+
+You will also need access to a soldering iron
+
+
+### Steering Assembly BOM
+| **Item**                    | **Link**                                                                                          | **Quantity** | **Additional Notes**   |
+| ---                         | ---                                                                                               | ---          | ---                    |
+| Linear Actuator             | [Link](https://www.servocity.com/4-stroke-25-lb-thrust-linear-servo/)                             | 1 | Heavy-Duty Linear Servo (Position Control, 12-24V, 33lb Thrust, 1.7"/sec, 4" Stroke). Used for steering. At $300, this is by far the biggest opportunity to reduce costs. Unfortunately, we did not have time to test cheaper options, like [this servo](https://www.amazon.com/GoolRC-Digital-Torque-Waterproof-Replacements/dp/B0B5H4MWZG)
+| Mounting bracket            | [Link](https://www.servocity.com/universal-mounting-bracket-for-heavy-duty-linear-actuator/)      | 1 | Universal Mounting Bracket for Heavy-Duty Linear Actuator
+| 1" square aluminum tube     |                                                                                                   |   |                                   |
+| 5" Threaded rod end bolt    | [Link](https://www.mcmaster.com/2440K41/)                                                         | 1 | High-Strength Fully Threaded Rod End Bolt. 3/8"-16 shank thread, 5" shank length
+| 4" Threaded rod end bolt    | [Link](https://www.mcmaster.com/2440K78/)                                                         | 1 | High-Strength Fully Threaded Rod End Bolt. 3/8"-16 shank thread, 4" shank length
+| Internal threaded rod       | [Link](https://www.mcmaster.com/7417N87/)                                                         | 1 | Internally Threaded Connecting Rod. 18-8 Stainless Steel, 3/8"-16 thread, 12" length
+| 3/8" Shoulder screw         | [Link](https://www.mcmaster.com/91259A481/)                                                       | 1 | Alloy Steel Shoulder Screw. 3/8" shoulder diameter, 7/16" shoulder length, 5/16"-18 thread
+| 5/16 Shoulder screw         | [Link](https://www.mcmaster.com/91273A183/)                                                       | 1 | Same-Size Thread 18-8 Stainless Steel Shoulder Screew. 5/16" shoulder diameter, 3" shoulder length, 5/16"-18 thread
+| 3/8" Washer                 | [Link](https://www.mcmaster.com/92141A031/)                                                       | 1 | 18-8 Stainless Steel Washer. For 3/8" screw size. 0.875" outer diameter
+| 5/16" Washer                | [Link](https://www.mcmaster.com/92141A030/)                                                       | 2 | 18-8 Stainless Steel Washer. For 5/16" screw size. 0.75" outer diameter
+| Hex Nut                     | [Link](https://www.mcmaster.com/95462A031/)                                                       | 2 | Medium-Strength Steel Hex Nut. Grade 5, Zinc-plated. 3/8"-16 thread
+| Locking Hex Nut             | [Link](https://www.mcmaster.com/95615A160/)                                                       | 2 | Medium-Strength Steel Nylon-Insert Locknut. Grade 5, Zinc-plated. 5/16"-18 thread
+| Aluminum Spacer             | [Link](https://www.mcmaster.com/92511A108/)                                                       | 1 | Aluminum Unthreaded Spacer. For 5/16" screw size. 1.75" length. 0.75" outer diameter
+
+
+
+
 * PCB
      - You can upload the attached [gerber file](/GBG_Joystick_PCB_v4.zip) to a PCB manufacturer of your choice (PCBWay, JLCPCB, among others). You can also see and modify the [KiCAD files](/KiCAD/) and export from there.
      - Alternatively, you could build this on a breadboard or solder all wires together. If you do that, I highly recommend you reference the [schematic](/KiCAD/KiCAD.kicad_sch).
-* Access to a soldering iron
 
 
 
-## Starting here
+## Unpacking your car and components
+-----------
+- Once you get your vehicle, unpack the car and inspect it to ensure all the pieces are present and there is no damage to the vehicle
+- Sort the componets, both electrical and mechanical, into two areas according to the BOM
+- You don't need to assemble the vehicle at this point, as several components will be removed
+
+
+
+## Preparing the car 
+-----------
+
+### Removal of steering column and motor
+
+1. Using a hammer and punch, push out the silver pin on top of the steering column that holds the steering wheel adapter to the steering column. The pin should come out with medium force
+<img src="images/SteeringAdapter.png">
+2. With the pin removed, the black cap that held the pin in should be able to be removed easily by pulling it up and away from the vehicle. This will leave a hole in the dashboard
+<img src="images/SteeringAdapterAfterRemoval.png">
+3. Now that the pin and black retaining cap are removed, drop the steering column (circled in blue) out of the vehicle through the bottom
+<img src="images/SteeringColumnRemoval.png">
+4. Remove the gearbox from the bottom of the vehicle by first unplugging it from the existing car controller, then dropping it out of the vehicle. The bottom of the car should now look like the following photo
+<img src="images/SteeringColumnRemoved.png">
+5. Following the manufacturers instructions, install the front steering axle and suspension. The bottom of the car should end up like the following
+<img src="images/SteeringAxleInstalled.png">
+
+
+### Removal of steering linkage
+
+1. The steering linkage (circled in yellow) that connects the right and left front wheel mounts needs to be removed. To do this, the pins that connect the linkage (circled in blue) should be drilled out
+<img src="images/SteeringLinkageBeforeRemoval.png">
+2. Using a 5/16" drill bit, slowly drill the pins out. When complete, the linkage will be disconnected as shown below. 
+     - *Note: drill slowly with light to medium pressure and use cutting oil to ensure you don't damage or break the drill bit. You may need to hold the pin using pliers to ensure it does not slip and rotate during drilling*
+<img src="images/SteeringLinkageRemoval.png">
+<img src="images/SteeringLinkageRemoved.png">
+
+
+## Steering mechanism assembly
+-----------
+
+During this process, please reference the final assembly and exploded view below. You may also reference the assembly video [here](https://www.youtube.com/watch?v=7GvAFjcBryw)
+<img src="images/SteeringMechanismSchematic.png">
+<img src="images/SteeringMechanismSchematicExploded.png">
+
+### Steering linkage assembly
+1. Thread one hex nut (part 10) onto each of the threaded rod end bolts (parts 5 and 6) about 0.875 inches
+<img src="images/ThreadNutOnRodEndBolt.png">
+2. Take the internal threaded rod (part 7) and screw the bolts into each side until the rod touches the nuts. Then, tighten each nut into the rod to create jam nuts
+<img src="images/ConnectedRodEnds.png">
+
+### Linear actuator attachment
+1. Cut a piece of 1" square tubing to the length of the mounting bracket (part 4). This should be about 1.7 inches
+2. Copy the location of the holes on the mounting bracket to the square tube, then drill those holes using a 5/16" drill bit
+3. Scribe a line 7 inches from the left axle bar
+4. Align the mounting bracket to this scribe line and mark the holes, then drill those holes using a 5/16" drill bit
 
 After assembling your vehicle, the "engine bay" will look like this.
 ![](images/01_FreshVehicle.jpg)
